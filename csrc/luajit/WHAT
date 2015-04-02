@@ -2,8 +2,6 @@ luajit 2.1-nov8 from http://luajit.org/download.html (MIT license)
 
 This version was compiled from the v2.1 branch on November 8, 2014.
 
-Added flags: -msse -msse2 -static-libgcc
-
 For the Windows platform, LUA_PATH and LUA_CPATH were changed from the default
 in luaconf.h as follows:
 
