@@ -14,4 +14,5 @@ platform_dir="$bindir/lua"                    # platform-specific Lua modules
 
 export LUA_CPATH="./?.so;$bindir/clib/?.so"
 export LUA_PATH="./?.lua;$platform_dir/?.lua;$luadir/?.lua;$luadir/?/init.lua"
+export LD_PRELOAD=libpthread.so.0
 exec "$bindir/luajit-bin" "$@"
