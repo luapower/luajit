@@ -85,6 +85,17 @@ on Linux and OSX. It's only used on Windows, but has lower priority
 than the exe's directory (except on WinXP before SP2 where it has
 higher priority).
 
+### Finding [terra] modules
+
+#### Windows
+
+TODO
+
+#### Linux and OSX
+
+The luajit wrapper sets TERRA_PATH just like it sets LUA_PATH,
+so terra files are searched for in the same directories as Lua files.
+
 
 [glue.bin]:     glue#bin
 [glue.luapath]: glue#luapath
