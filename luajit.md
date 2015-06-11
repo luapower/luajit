@@ -7,11 +7,15 @@ tagline: LuaJIT binary
 
 LuaJIT binaries (frontend, static library, dynamic library).
 
-Comes bundled the `luajit` command, which is a simple shell script that
+Comes bundled with the `luajit` command, which is a simple shell script that
 finds and loads the appropriate luajit executable for your platform, so that
 typing `./luajit` (that's `luajit` on Windows) always works.
 
 LuaJIT was compiled using its own makefile.
+
+__NEW!__ You can now browse the LuaJIT source code 
+[online](/files/htags/luajit) and there's also an auto-updating 
+[mirror](https://github.com/capr/luajit).
 
 ## Making portable apps
 
