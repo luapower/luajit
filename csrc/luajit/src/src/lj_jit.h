@@ -1,6 +1,6 @@
 /*
 ** Common definitions for the JIT compiler.
-** Copyright (C) 2005-2014 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_JIT_H
@@ -213,6 +213,9 @@ typedef struct GCtrace {
   uint8_t topslot;	/* Top stack slot already checked to be allocated. */
   uint8_t linktype;	/* Type of link. */
   IRRef nins;		/* Next IR instruction. Biased with REF_BIAS. */
+#if LJ_GC64
+  uint32_t unused_gc64;
+#endif
   GCRef gclist;
   IRIns *ir;		/* IR instructions/constants. Biased with REF_BIAS. */
   IRRef nk;		/* Lowest IR constant. Biased with REF_BIAS. */
@@ -286,6 +289,16 @@ typedef struct ScEvEntry {
   IRType1 t;		/* Scalar type. */
   uint8_t dir;		/* Direction. 1: +, 0: -. */
 } ScEvEntry;
+
+/* Reverse bytecode map (IRRef -> PC). Only for selected instructions. */
+typedef struct RBCHashEntry {
+  MRef pc;		/* Bytecode PC. */
+  GCRef pt;		/* Prototype. */
+  IRRef ref;		/* IR reference. */
+} RBCHashEntry;
+
+/* Number of slots in the reverse bytecode hash table. Must be a power of 2. */
+#define RBCHASH_SLOTS	8
 
 /* 128 bit SIMD constants. */
 enum {
@@ -361,8 +374,9 @@ typedef struct jit_State {
 
   PostProc postproc;	/* Required post-processing after execution. */
 #if LJ_SOFTFP || (LJ_32 && LJ_HASFFI)
-  int needsplit;	/* Need SPLIT pass. */
+  uint8_t needsplit;	/* Need SPLIT pass. */
 #endif
+  uint8_t retryrec;	/* Retry recording. */
 
   GCRef *trace;		/* Array of traces. */
   TraceNo freetrace;	/* Start of scan for next free trace. */
@@ -378,6 +392,8 @@ typedef struct jit_State {
   HotPenalty penalty[PENALTY_SLOTS];  /* Penalty slots. */
   uint32_t penaltyslot;	/* Round-robin index into penalty slots. */
   uint32_t prngstate;	/* PRNG state. */
+
+  RBCHashEntry rbchash[RBCHASH_SLOTS];  /* Reverse bytecode map. */
 
   BPropEntry bpropcache[BPROP_SLOTS];  /* Backpropagation cache slots. */
   uint32_t bpropslot;	/* Round-robin index into bpropcache slots. */
