@@ -1,6 +1,6 @@
 /*
 ** Fast function call recorder.
-** Copyright (C) 2005-2014 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #define lj_ffrecord_c
@@ -96,6 +96,13 @@ static ptrdiff_t results_wanted(jit_State *J)
     return -1;
 }
 
+#ifdef LUAJIT_TRACE_STITCHING
+/* This feature is disabled for now due to a design mistake. Sorry.
+**
+** It causes unpredictable behavior and crashes when a full trace flush
+** happens with a stitching continuation still in the stack somewhere.
+*/
+
 /* Trace stitching: add continuation below frame to start a new trace. */
 static void recff_stitch(jit_State *J)
 {
@@ -107,9 +114,10 @@ static void recff_stitch(jit_State *J)
   TValue *pframe = frame_prevl(base-1);
   TRef trcont;
 
+  lua_assert(!LJ_FR2);  /* TODO_FR2: handle frame shift. */
   /* Move func + args up in Lua stack and insert continuation. */
   memmove(&base[1], &base[-1], sizeof(TValue)*(J->maxslot+1));
-  setframe_ftsz(base+1, (int)((char *)(base+1) - (char *)pframe) + FRAME_CONT);
+  setframe_ftsz(base+1, ((char *)(base+1) - (char *)pframe) + FRAME_CONT);
   setcont(base, cont);
   setframe_pc(base, pc);
   if (LJ_DUALNUM) setintV(base-1, traceno); else base[-1].u64 = traceno;
@@ -173,6 +181,31 @@ static void LJ_FASTCALL recff_nyi(jit_State *J, RecordFFData *rd)
 
 /* Must stop the trace for classic C functions with arbitrary side-effects. */
 #define recff_c		recff_nyi
+#else
+/* Fallback handler for fast functions that are not recorded (yet). */
+static void LJ_FASTCALL recff_nyi(jit_State *J, RecordFFData *rd)
+{
+  setfuncV(J->L, &J->errinfo, J->fn);
+  lj_trace_err_info(J, LJ_TRERR_NYIFF);
+  UNUSED(rd);
+}
+
+/* Throw error for unsupported variant of fast function. */
+LJ_NORET static void recff_nyiu(jit_State *J, RecordFFData *rd)
+{
+  setfuncV(J->L, &J->errinfo, J->fn);
+  lj_trace_err_info(J, LJ_TRERR_NYIFFU);
+  UNUSED(rd);
+}
+
+/* Must abort the trace for classic C functions with arbitrary side-effects. */
+static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
+{
+  setfuncV(J->L, &J->errinfo, J->fn);
+  lj_trace_err_info(J, LJ_TRERR_NYICF);
+  UNUSED(rd);
+}
+#endif
 
 /* Emit BUFHDR for the global temporary buffer. */
 static TRef recff_bufhdr(jit_State *J)
@@ -195,7 +228,7 @@ static void LJ_FASTCALL recff_type(jit_State *J, RecordFFData *rd)
   uint32_t t;
   if (tvisnumber(&rd->argv[0]))
     t = ~LJ_TNUMX;
-  else if (LJ_64 && tvislightud(&rd->argv[0]))
+  else if (LJ_64 && !LJ_GC64 && tvislightud(&rd->argv[0]))
     t = ~LJ_TLIGHTUD;
   else
     t = ~itype(&rd->argv[0]);
@@ -466,6 +499,7 @@ static void LJ_FASTCALL recff_xpcall(jit_State *J, RecordFFData *rd)
     TValue argv0, argv1;
     TRef tmp;
     int errcode;
+    lua_assert(!LJ_FR2);  /* TODO_FR2: handle different frame setup. */
     /* Swap function and traceback. */
     tmp = J->base[0]; J->base[0] = J->base[1]; J->base[1] = tmp;
     copyTV(J->L, &argv0, &rd->argv[0]);
