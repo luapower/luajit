@@ -1,6 +1,5 @@
-luajit 2.1-nov8 from http://luajit.org/download.html (MIT license)
+luajit 2.1-jun11 from http://luajit.org/download.html (MIT license)
 
-This version was compiled from the v2.1 branch on November 8, 2014.
 
 For the Windows platform, LUA_PATH and LUA_CPATH were changed from the default
 in luaconf.h as follows:

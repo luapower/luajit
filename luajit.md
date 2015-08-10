@@ -7,11 +7,17 @@ tagline: LuaJIT binary
 
 LuaJIT binaries (frontend, static library, dynamic library).
 
-Comes bundled the `luajit` command, which is a simple shell script that
+Comes bundled with the `luajit` command, which is a simple shell script that
 finds and loads the appropriate luajit executable for your platform, so that
 typing `./luajit` (that's `luajit` on Windows) always works.
 
 LuaJIT was compiled using its own makefile.
+
+__NEW!__ You can now browse the [LuaJIT source code](/files/htags/luajit)
+and the [DynASM source code](/files/htags/dynasm) online. 
+The html is updated daily from the 
+[github mirror](https://github.com/capr/luajit)
+which is updated hourly.
 
 ## Making portable apps
 
@@ -84,6 +90,17 @@ The current directory is _not used_ for finding shared libraries
 on Linux and OSX. It's only used on Windows, but has lower priority
 than the exe's directory (except on WinXP before SP2 where it has
 higher priority).
+
+### Finding [terra] modules
+
+#### Windows
+
+TODO
+
+#### Linux and OSX
+
+The luajit wrapper sets TERRA_PATH just like it sets LUA_PATH,
+so terra files are searched for in the same directories as Lua files.
 
 
 [glue.bin]:     glue#bin

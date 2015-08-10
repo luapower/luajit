@@ -1,6 +1,6 @@
 /*
 ** Definitions for x86 and x64 CPUs.
-** Copyright (C) 2005-2014 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_TARGET_X86_H
@@ -132,7 +132,11 @@ enum {
 #define SPS_FIXED	(4*2)
 #define SPS_FIRST	(4*2)	/* Don't use callee register save area. */
 #else
+#if LJ_GC64
+#define SPS_FIXED	2
+#else
 #define SPS_FIXED	4
+#endif
 #define SPS_FIRST	2
 #endif
 #else
