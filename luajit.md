@@ -1,5 +1,4 @@
 ---
-project: luajit
 tagline: LuaJIT binary
 ---
 
@@ -14,8 +13,8 @@ typing `./luajit` (that's `luajit` on Windows) always works.
 LuaJIT was compiled using its own makefile.
 
 __NEW!__ You can now browse the [LuaJIT source code](/files/htags/luajit)
-and the [DynASM source code](/files/htags/dynasm) online. 
-The html is updated daily from the 
+and the [DynASM source code](/files/htags/dynasm) online.
+The html is updated daily from the
 [github mirror](https://github.com/capr/luajit)
 which is updated hourly.
 
