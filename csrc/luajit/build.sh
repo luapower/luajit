@@ -6,7 +6,7 @@ make clean
 mkdir -p "$bindir/../../jit"
 cp -f jit/*.lua "$bindir/../../jit/"
 
-"$MAKE" amalg # Q=" "
+"$MAKE" amalg Q=" "
 
 [ "$X0" ] || X0=$X; cp -f $X0 "$bindir/$X"
 [ "$D0" ] || D0=$D; cp -f $D0 "$bindir/$D"
