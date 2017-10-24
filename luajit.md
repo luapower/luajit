@@ -57,7 +57,7 @@ system libraries.
 
 #### The current directory
 
-Lua modules (including Lua/C modules) searched for in the current directory
+Lua modules (including Lua/C modules) are searched for in the current directory
 ___first___ (on any platform), so the isolation from the host system
 is not absolute.
 
