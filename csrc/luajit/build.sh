@@ -8,7 +8,7 @@ cp -f jit/*.lua "$bindir/../../jit/"
 
 [ "$HOST_CC" ] || HOST_CC=gcc
 "$MAKE" HOST_CC="$HOST_CC" amalg Q=" " \
-	CFLAGS="$CFLAGS -Wmisleading-indentation -DLUA_USE_APICHECK -DLUAPOWER_BUILD"
+	CFLAGS="$CFLAGS -Wmisleading-indentation -DLUAPOWER_BUILD"
 
 [ "$X0" ] || X0=$X; cp -f $X0 "$bindir/$X"
 [ "$D0" ] || D0=$D; cp -f $D0 "$bindir/$D"
