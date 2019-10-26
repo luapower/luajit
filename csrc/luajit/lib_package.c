@@ -106,7 +106,6 @@ static void setprogdir(lua_State *L)
   char *ls;
   uint32_t n = PATH_MAX;
   if (_NSGetExecutablePath(path1, &n) == 0) {
-    path1[n] = '\0'; /* not sure if _NSGetExecutablePath null-terminates */
     if (realpath(path1, path2)) { /* resolve symlinks and `..` */
       if ((ls = strrchr(path2, '/'))) {  /* find position of last slash */
         *ls = '\0';
@@ -676,3 +675,4 @@ LUALIB_API int luaopen_package(lua_State *L)
   lua_pop(L, 1);
   return 1;
 }
+
