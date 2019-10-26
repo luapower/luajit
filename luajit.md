@@ -43,10 +43,8 @@ To add more paths to package.path and package.cpath at runtime, use
 
 ### Finding Lua modules
 
-#### Windows
-
-`!\..\..\?.lua;!\..\..\?\init.lua` was added to the default package.path
-in luaconf.h. This allows luapower modules to be found regardless of what
+`!\..\..\?.lua;!\..\..\?\init.lua` was added to the default `package.path`
+in `luaconf.h`. This allows luapower modules to be found regardless of what
 the current directory is, making the distribution portable.
 
 The default `package.cpath` was also modified from `!\?.dll` to `!\clib\?.dll`.
@@ -54,11 +52,7 @@ This is to distinguish between Lua/C modules and other binary dependencies
 and avoid name clashes on Windows where shared libraries are not prefixed
 with `lib`.
 
-#### Linux and OSX
-
-In Linux and OSX, luajit is a shell wrapper script that sets LUA_PATH
-and LUA_CPATH to acheive the same effect and assure isolation from
-system libraries.
+The `!` symbol was implemented for Linux and OSX too.
 
 #### The current directory
 
