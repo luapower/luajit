@@ -103,9 +103,9 @@ to run `.t` files at the command line. Also, it loads the file by calling
 `_G.loadfile` is overriden in `terralib_luapower.lua` to load `.t` files
 as Terra source code.
 
-`terralib.lua` was changed to require `terralib_luapower` at the end of the file.
+`terralib.lua` was changed to load `terralib_luapower.lua` at the end of the file.
 
-`package.terrapath`
+`package.terrapath` is set to match `package.luapath` in `terralib_luapower.lua`.
 
 [glue.bin]:     glue#glue.bin
 [glue.luapath]: glue#glue.luapath
