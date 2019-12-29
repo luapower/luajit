@@ -676,6 +676,11 @@ LUALIB_API int luaopen_package(lua_State *L)
   lua_pushliteral(L, LUA_PATH_CONFIG);
   lua_setfield(L, -2, "config");
   luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 16);
+  /* -2: package; -1: _LOADED */
+  lua_getfield(L, -2, "exedir");
+  /* -3: package; -2: _LOADED; -1: exedir */
+  lua_setfield(L, -2, "package.exedir"); /* _LOADED['package.exedir'] = exedir */
+  /* -2: package; -1: _LOADED */
   lua_setfield(L, -2, "loaded");
   luaL_findtable(L, LUA_REGISTRYINDEX, "_PRELOAD", 4);
   lua_setfield(L, -2, "preload");
