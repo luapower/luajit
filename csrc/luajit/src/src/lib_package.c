@@ -78,6 +78,7 @@ static const char *ll_bcsym(void *lib, const char *sym)
 
 #undef setprogdir
 
+/* stack on entry: -2: package table, -1: (c)path string */
 static void setprogdir(lua_State *L)
 {
   char path[PATH_MAX+2];
@@ -87,6 +88,8 @@ static void setprogdir(lua_State *L)
     path[n] = '\0'; /* readlink doesn't null-terminate */
     if ((ls = strrchr(path, '/'))) {  /* find position of last slash */
       *ls = '\0';
+      lua_pushstring(L, path);
+      lua_setfield(L, -3, "exedir");
       luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, path);
       lua_remove(L, -2);  /* remove original string */
       return;
@@ -99,6 +102,7 @@ static void setprogdir(lua_State *L)
 
 #undef setprogdir
 
+/* stack on entry: -2: package table, -1: (c)path string */
 static void setprogdir(lua_State *L)
 {
   char path1[PATH_MAX+1];
@@ -109,6 +113,8 @@ static void setprogdir(lua_State *L)
     if (realpath(path1, path2)) { /* resolve symlinks and `..` */
       if ((ls = strrchr(path2, '/'))) {  /* find position of last slash */
         *ls = '\0';
+        lua_pushstring(L, path2);
+        lua_setfield(L, -3, "exedir");
         luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, path2);
         lua_remove(L, -2);  /* remove original string */
         return;
@@ -147,6 +153,7 @@ void *LJ_WIN_LOADLIBA(const char *path)
 
 #undef setprogdir
 
+/* stack on entry: -2: package table, -1: (c)path string */
 static void setprogdir(lua_State *L)
 {
   char buff[MAX_PATH + 1];
@@ -157,6 +164,8 @@ static void setprogdir(lua_State *L)
     luaL_error(L, "unable to get ModuleFileName");
   } else {
     *lb = '\0';
+    lua_pushstring(L, buff);
+    lua_setfield(L, -3, "exedir");
     luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, buff);
     lua_remove(L, -2);  /* remove original string */
   }
