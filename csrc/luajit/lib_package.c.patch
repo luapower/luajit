@@ -1,6 +1,6 @@
-Patch to add package.exedir and make '!' in LUA_PATH and LUA_CPATH work on Linux and OSX too.
---- lib_package.c	2019-12-29 11:14:05 +0200
-+++ src/src/lib_package.c	2019-12-29 11:09:46 +0200
+Add package.exedir and package.exepath modules.
+--- lib_package.c	2019-12-30 19:36:26 +0200
++++ src/src/lib_package.c	2019-12-30 19:26:31 +0200
 @@ -17,6 +17,15 @@
  #include "lj_err.h"
  #include "lj_lib.h"
@@ -17,7 +17,7 @@ Patch to add package.exedir and make '!' in LUA_PATH and LUA_CPATH work on Linux
  /* ------------------------------------------------------------------------ */
 
  /* Error codes for ll_loadfunc. */
-@@ -65,6 +74,58 @@
+@@ -65,6 +74,62 @@
    return (const char *)dlsym(lib, sym);
  }
 
@@ -33,6 +33,8 @@ Patch to add package.exedir and make '!' in LUA_PATH and LUA_CPATH work on Linux
 +  int n = readlink("/proc/self/exe", path, PATH_MAX+1);
 +  if (n > 0 && n <= PATH_MAX) {
 +    path[n] = '\0'; /* readlink doesn't null-terminate */
++    lua_pushstring(L, path);
++    lua_setfield(L, -3, "exepath");
 +    if ((ls = strrchr(path, '/'))) {  /* find position of last slash */
 +      *ls = '\0';
 +      lua_pushstring(L, path);
@@ -58,6 +60,8 @@ Patch to add package.exedir and make '!' in LUA_PATH and LUA_CPATH work on Linux
 +  uint32_t n = PATH_MAX;
 +  if (_NSGetExecutablePath(path1, &n) == 0) {
 +    if (realpath(path1, path2)) { /* resolve symlinks and `..` */
++      lua_pushstring(L, path2);
++      lua_setfield(L, -3, "exepath");
 +      if ((ls = strrchr(path2, '/'))) {  /* find position of last slash */
 +        *ls = '\0';
 +        lua_pushstring(L, path2);
@@ -76,7 +80,7 @@ Patch to add package.exedir and make '!' in LUA_PATH and LUA_CPATH work on Linux
  #elif LJ_TARGET_WINDOWS
 
  #define WIN32_LEAN_AND_MEAN
-@@ -92,6 +153,7 @@
+@@ -92,18 +157,25 @@
 
  #undef setprogdir
 
@@ -84,12 +88,43 @@ Patch to add package.exedir and make '!' in LUA_PATH and LUA_CPATH work on Linux
  static void setprogdir(lua_State *L)
  {
    char buff[MAX_PATH + 1];
-@@ -102,6 +164,8 @@
-     luaL_error(L, "unable to get ModuleFileName");
-   } else {
-     *lb = '\0';
+   char *lb;
+   DWORD nsize = sizeof(buff);
+   DWORD n = GetModuleFileNameA(NULL, buff, nsize);
+-  if (n == 0 || n == nsize || (lb = strrchr(buff, '\\')) == NULL) {
+-    luaL_error(L, "unable to get ModuleFileName");
+-  } else {
+-    *lb = '\0';
+-    luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, buff);
+-    lua_remove(L, -2);  /* remove original string */
++  if (n && n < nsize) {
 +    lua_pushstring(L, buff);
-+    lua_setfield(L, -3, "exedir");
-     luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, buff);
-     lua_remove(L, -2);  /* remove original string */
++    lua_setfield(L, -3, "exepath");
++    if ((lb = strrchr(buff, '\\'))) {
++      *lb = '\0';
++      lua_pushstring(L, buff);
++      lua_setfield(L, -3, "exedir");
++      luaL_gsub(L, lua_tostring(L, -1), LUA_EXECDIR, buff);
++      lua_remove(L, -2);  /* remove original string */
++    } else {
++      luaL_error(L, "unable to get ModuleFileName");
++    }
    }
+ }
+
+@@ -612,6 +684,15 @@
+   lua_pushliteral(L, LUA_PATH_CONFIG);
+   lua_setfield(L, -2, "config");
+   luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 16);
++  /* -2: package; -1: _LOADED */
++  lua_getfield(L, -2, "exedir");
++  /* -3: package; -2: _LOADED; -1: exedir */
++  lua_setfield(L, -2, "package.exedir"); /* _LOADED['package.exedir'] = exedir */
++  /* -2: package; -1: _LOADED */
++  lua_getfield(L, -2, "exepath");
++  /* -3: package; -2: _LOADED; -1: exepath */
++  lua_setfield(L, -2, "package.exepath"); /* _LOADED['package.exepath'] = exepath */
++  /* -2: package; -1: _LOADED */
+   lua_setfield(L, -2, "loaded");
+   luaL_findtable(L, LUA_REGISTRYINDEX, "_PRELOAD", 4);
+   lua_setfield(L, -2, "preload");
