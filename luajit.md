@@ -85,6 +85,11 @@ is acheived automatically in this case.
 Linux binaries are built with `rpath=$ORIGIN` which makes ldd look for
 shared objects in the directory of the exe first.
 
+`-Wl,--disable-new-dtags` was also used so that it's `RPATH` not `RUNPATH`
+that is being set, which makes `dlopen()` work the same from dynamically
+loaded code too (this enables eg. `terralib.linklibrary` to link against
+luapower libraries by name alone). I'm biting my tongue so hard here...
+
 #### OSX
 
 OSX binaries are built with `rpath=@loader_path` which makes the
@@ -99,7 +104,7 @@ than the exe's directory.
 ### Finding [terra] modules
 
 The luajit executable was modified to call `require'terra'` before trying
-to run `.t` files at the command line. Also, it loads the file by calling
+to run `.t` files at the command line. Also, it loads `.t` files by calling
 `_G.loadfile` instead of the C function `lua_loadfile`.
 
 `_G.loadfile` is overriden in `terralib_luapower.lua` to load `.t` files
@@ -107,7 +112,7 @@ as Terra source code.
 
 `terralib.lua` was changed to load `terralib_luapower.lua` at the end of the file.
 
-`package.terrapath` is set to match `package.luapath` in `terralib_luapower.lua`.
+`package.terrapath` is set to match `package.path` in `terralib_luapower.lua`.
 
 [glue.bin]:     glue#glue.bin
 [glue.luapath]: glue#glue.luapath
