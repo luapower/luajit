@@ -41,13 +41,14 @@ a location relative to the app's directory. This means at least three things:
  dirs first.
 
 The solutions for the first two problems are platform-specific and
-are described below. As for the third problem, you can use `package.exedir`
-To get the location of the _running script_, as opposed to that of the
+are described below. As for the third problem, you can use `package.exedir`.
+
+> To get the location of the _running script_, as opposed to that of the
 executable, use [glue.bin]. To add more paths to package.path and
 package.cpath at runtime, use [glue.luapath] and [glue.cpath] respectively.
 
-NOTE: If you choose to use a LuaJIT binary of your own that doesn't have
-`package.exepath`, you can extract the exe's path from `arg[-1]` or use
+> If you choose to use a LuaJIT binary of your own that doesn't have
+`package.exedir`, you can extract the exe's path from `arg[-n]` or use
 the more reliable [fs.exedir] if you can have [fs] as a dependency.
 
 ### Finding Lua modules
