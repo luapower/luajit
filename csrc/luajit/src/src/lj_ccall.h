@@ -1,6 +1,6 @@
 /*
 ** FFI C call handling.
-** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_CCALL_H
@@ -86,10 +86,23 @@ typedef union FPRArg {
 #elif LJ_TARGET_PPC
 
 #define CCALL_NARG_GPR		8
+#if LJ_ARCH_BITS == 64
+#define CCALL_NARG_FPR		13
+#if LJ_ARCH_PPC_ELFV2
+#define CCALL_NRET_GPR		2
+#define CCALL_NRET_FPR		8
+#define CCALL_SPS_EXTRA		14
+#else
+#define CCALL_NRET_GPR		1
+#define CCALL_NRET_FPR		2
+#define CCALL_SPS_EXTRA		16
+#endif
+#else
 #define CCALL_NARG_FPR		(LJ_ABI_SOFTFP ? 0 : 8)
 #define CCALL_NRET_GPR		4	/* For complex double. */
 #define CCALL_NRET_FPR		(LJ_ABI_SOFTFP ? 0 : 1)
 #define CCALL_SPS_EXTRA		4
+#endif
 #define CCALL_SPS_FREE		0
 
 typedef intptr_t GPRArg;

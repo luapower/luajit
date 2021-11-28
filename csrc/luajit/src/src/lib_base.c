@@ -1,6 +1,6 @@
 /*
 ** Base and coroutine library.
-** Copyright (C) 2005-2017 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2021 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Major portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2011 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -19,6 +19,7 @@
 #include "lj_gc.h"
 #include "lj_err.h"
 #include "lj_debug.h"
+#include "lj_buf.h"
 #include "lj_str.h"
 #include "lj_tab.h"
 #include "lj_meta.h"
@@ -76,9 +77,10 @@ LJLIB_ASM_(type)		LJLIB_REC(.)
 /* This solves a circular dependency problem -- change FF_next_N as needed. */
 LJ_STATIC_ASSERT((int)FF_next == FF_next_N);
 
-LJLIB_ASM(next)
+LJLIB_ASM(next)			LJLIB_REC(.)
 {
   lj_lib_checktab(L, 1);
+  lj_err_msg(L, LJ_ERR_NEXTIDX);
   return FFH_UNREACHABLE;
 }
 
@@ -225,9 +227,11 @@ LJLIB_CF(unpack)
   int32_t n, i = lj_lib_optint(L, 2, 1);
   int32_t e = (L->base+3-1 < L->top && !tvisnil(L->base+3-1)) ?
 	      lj_lib_checkint(L, 3) : (int32_t)lj_tab_len(t);
+  uint32_t nu;
   if (i > e) return 0;
-  n = e - i + 1;
-  if (n <= 0 || !lua_checkstack(L, n))
+  nu = (uint32_t)e - (uint32_t)i;
+  n = (int32_t)(nu+1);
+  if (nu >= LUAI_MAXCSTACK || !lua_checkstack(L, n))
     lj_err_caller(L, LJ_ERR_UNPACK);
   do {
     cTValue *tv = lj_tab_getint(t, i);
@@ -300,7 +304,7 @@ LJLIB_ASM(tonumber)		LJLIB_REC(.)
 	while (lj_char_isspace((unsigned char)(*ep))) ep++;
 	if (*ep == '\0') {
 	  if (LJ_DUALNUM && LJ_LIKELY(ul < 0x80000000u+neg)) {
-	    if (neg) ul = -ul;
+	    if (neg) ul = (unsigned long)-(long)ul;
 	    setintV(L->base-1-LJ_FR2, (int32_t)ul);
 	  } else {
 	    lua_Number n = (lua_Number)ul;
@@ -405,10 +409,22 @@ LJLIB_CF(load)
   GCstr *name = lj_lib_optstr(L, 2);
   GCstr *mode = lj_lib_optstr(L, 3);
   int status;
-  if (L->base < L->top && (tvisstr(L->base) || tvisnumber(L->base))) {
-    GCstr *s = lj_lib_checkstr(L, 1);
+  if (L->base < L->top &&
+      (tvisstr(L->base) || tvisnumber(L->base) || tvisbuf(L->base))) {
+    const char *s;
+    MSize len;
+    if (tvisbuf(L->base)) {
+      SBufExt *sbx = bufV(L->base);
+      s = sbx->r;
+      len = sbufxlen(sbx);
+      if (!name) name = &G(L)->strempty;  /* Buffers are not NUL-terminated. */
+    } else {
+      GCstr *str = lj_lib_checkstr(L, 1);
+      s = strdata(str);
+      len = str->len;
+    }
     lua_settop(L, 4);  /* Ensure env arg exists. */
-    status = luaL_loadbufferx(L, strdata(s), s->len, strdata(name ? name : s),
+    status = luaL_loadbufferx(L, s, len, name ? strdata(name) : s,
 			      mode ? strdata(mode) : NULL);
   } else {
     lj_lib_checkfunc(L, 1);
@@ -503,7 +519,8 @@ LJLIB_CF(print)
     lua_gettable(L, LUA_GLOBALSINDEX);
     tv = L->top-1;
   }
-  shortcut = (tvisfunc(tv) && funcV(tv)->c.ffid == FF_tostring);
+  shortcut = (tvisfunc(tv) && funcV(tv)->c.ffid == FF_tostring) &&
+	     !gcrefu(basemt_it(G(L), LJ_TNUMX));
   for (i = 0; i < nargs; i++) {
     cTValue *o = &L->base[i];
     const char *str;
@@ -675,6 +692,28 @@ LJLIB_NOREG LJLIB_CF(thread_exdata) LJLIB_REC(.)
   L->exdata = cdata_getptr(cdataptr(cd), CTSIZE_PTR);
   return 0;
 }
+
+LJLIB_NOREG LJLIB_CF(thread_exdata2) LJLIB_REC(.)
+{
+  ptrdiff_t nargs = L->top - L->base;
+  GCcdata *cd;
+
+  if (nargs == 0) {
+    CTState *cts = ctype_ctsG(G(L));
+    if (cts == NULL)
+      lj_err_caller(L, LJ_ERR_FFI_NOTLOAD);
+    cts->L = L;  /* Save L for errors and allocations. */
+
+    cd = lj_cdata_new(cts, CTID_P_VOID, CTSIZE_PTR);
+    cdata_setptr(cdataptr(cd), CTSIZE_PTR, L->exdata2);
+    setcdataV(L, L->top++, cd);
+    return 1;
+  }
+
+  cd = lj_lib_checkcdata(L, 1);
+  L->exdata2 = cdata_getptr(cdataptr(cd), CTSIZE_PTR);
+  return 0;
+}
 #endif
 
 /* ------------------------------------------------------------------------ */
@@ -695,6 +734,11 @@ static int luaopen_thread_exdata(lua_State *L)
 {
   return lj_lib_postreg(L, lj_cf_thread_exdata, FF_thread_exdata, "exdata");
 }
+
+static int luaopen_thread_exdata2(lua_State *L)
+{
+  return lj_lib_postreg(L, lj_cf_thread_exdata2, FF_thread_exdata2, "exdata2");
+}
 #endif
 
 LUALIB_API int luaopen_base(lua_State *L)
@@ -709,6 +753,7 @@ LUALIB_API int luaopen_base(lua_State *L)
 
 #if LJ_HASFFI
   lj_lib_prereg(L, LUA_THRLIBNAME ".exdata", luaopen_thread_exdata, env);
+  lj_lib_prereg(L, LUA_THRLIBNAME ".exdata2", luaopen_thread_exdata2, env);
 #endif
 
   return 2;

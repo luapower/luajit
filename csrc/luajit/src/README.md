@@ -2,7 +2,8 @@
 
 openresty/luajit2 - OpenResty's maintained branch of LuaJIT.
 
-# Table of Contents
+Table of Contents
+=================
 
 * [Name](#name)
 * [Description](#description)
@@ -14,15 +15,23 @@ openresty/luajit2 - OpenResty's maintained branch of LuaJIT.
         * [table.clone](#tableclone)
         * [jit.prngstate](#jitprngstate)
         * [thread.exdata](#threadexdata)
+        * [thread.exdata2](#threadexdata2)
+    * [New C API](#new-c-api)
+        * [lua_setexdata](#lua_setexdata)
+        * [lua_getexdata](#lua_getexdata)
+        * [lua_setexdata2](#lua_setexdata2)
+        * [lua_getexdata2](#lua_getexdata2)
+        * [lua_resetthread](#lua_resetthread)
     * [New macros](#new-macros)
-        * [`OPENRESTY_LUAJIT`](#openresty-luajit)
+        * [`OPENRESTY_LUAJIT`](#openresty_luajit)
+        * [`HAVE_LUA_RESETTHREAD`](#have_lua_resetthread)
     * [Optimizations](#optimizations)
         * [Updated JIT default parameters](#updated-jit-default-parameters)
         * [String hashing](#string-hashing)
     * [Updated bytecode options](#updated-bytecode-options)
         * [New `-bL` option](#new--bl-option)
         * [Updated `-bl` option](#updated--bl-option)
-* [Miscellaneous](#miscellaneous)
+    * [Miscellaneous](#miscellaneous)
 * [Copyright & License](#copyright--license)
 
 # Description
@@ -79,7 +88,7 @@ Usage:
 local isarray = require "table.isarray"
 
 print(isarray{"a", true, 3.14})  -- true
-print(isarray{"dog" = 3})  -- false
+print(isarray{dog = 3})  -- false
 print(isarray{})  -- true
 ```
 
@@ -137,21 +146,31 @@ second argument.
 
 **syntax:** *state = jit.prngstate(state?)*
 
-Returns (and optionally sets) the current PRNG state (a Lua number) currently
-used by the JIT compiler.
+Returns (and optionally sets) the current PRNG state (an array of 8 Lua
+numbers with 32-bit integer values) currently used by the JIT compiler.
 
-When the `state` argument is non-nil, it is expected to be a number, and will
-override the current PRNG state.
+When the `state` argument is non-nil, it is expected to be an array of up to 8
+unsigned Lua numbers, each with value less than 2\*\*32-1. This will set the
+current PRNG state and return the state that was overridden.
+
+**Note:** For backward compatibility, `state` argument can also be an unsigned
+Lua number less than 2\*\*32-1.
+
+**Note:** When the `state` argument is an array and less than 8 numbers, or the
+`state` is a number, the remaining positions are filled with zeros.
 
 Usage:
 
 ```lua
 local state = jit.prngstate()
-local newstate = jit.prngstate(123456)
+local oldstate = jit.prngstate{ a, b, c, ... }
+
+jit.prngstate(32) -- {32, 0, 0, 0, 0, 0, 0, 0}
+jit.prngstate{432, 23, 50} -- {432, 23, 50, 0, 0, 0, 0, 0}
 ```
 
 **Note:** This API has no effect if LuaJIT is compiled with
-`-DLUAJIT_DISABLE_JIT`, and will return `0`.
+`-DLUAJIT_DISABLE_JIT`, and will return a table with all `0`.
 
 [Back to TOC](#table-of-contents)
 
@@ -196,14 +215,86 @@ strongly discouraged to use it yourself in the context of OpenResty.
 
 [Back to TOC](#table-of-contents)
 
+### thread.exdata2
+
+**syntax:** *exdata = th_exdata2(data?)*
+
+Similar to `thread.exdata` but for a 2nd separate user data as a pointer value.
+
+[Back to TOC](#table-of-contents)
+
+## New C API
+
+### lua_setexdata
+
+```C
+void lua_setexdata(lua_State *L, void *exdata);
+```
+
+Sets extra user data as a pointer value to the current Lua state or thread.
+
+[Back to TOC](#table-of-contents)
+
+### lua_getexdata
+
+```C
+void *lua_getexdata(lua_State *L);
+```
+
+Gets extra user data as a pointer value to the current Lua state or thread.
+
+[Back to TOC](#table-of-contents)
+
+### lua_setexdata2
+
+```C
+void lua_setexdata2(lua_State *L, void *exdata2);
+```
+
+Similar to `lua_setexdata` but for a 2nd user data (pointer) value.
+
+[Back to TOC](#table-of-contents)
+
+### lua_getexdata2
+
+```C
+void *lua_getexdata2(lua_State *L);
+```
+
+Similar to `lua_getexdata` but for a 2nd user data (pointer) value.
+
+[Back to TOC](#table-of-contents)
+
+### lua_resetthread
+
+```C
+void lua_resetthread(lua_State *L, lua_State *th);
+```
+
+Resets the state of `th` to the initial state of a newly created Lua thread
+object as returned by `lua_newthread()`. This is mainly for Lua thread
+recycling. Lua threads in arbitrary states (like yielded or errored) can be
+reset properly.
+
+The current implementation does not shrink the already allocated Lua stack
+though. It only clears it.
+
+[Back to TOC](#table-of-contents)
+
 ## New macros
 
 The macros described in this section have been added to this branch.
+
+[Back to TOC](#table-of-contents)
 
 ### `OPENRESTY_LUAJIT`
 
 In the `luajit.h` header file, a new macro `OPENRESTY_LUAJIT` was defined to
 help distinguishing this OpenResty-specific branch of LuaJIT.
+
+### `HAVE_LUA_RESETTHREAD`
+
+This macro is set when the `lua_resetthread` C API is present.
 
 [Back to TOC](#table-of-contents)
 
@@ -288,9 +379,6 @@ KN    2    1.390671161567e-309
   even for alpha or beta versions.
 * Applied a patch to fix DragonFlyBSD compatibility. Note: this is not an
   officially supported target.
-* Turned off string comparison optimizations for 64-bit architectures when the
-  build option `LUAJIT_USE_VALGRIND` is specified. LuaJIT is now (almost)
-  valgrind clean.
 * feature: jit.dump: output Lua source location after every BC.
 * feature: added internal memory-buffer-based trace entry/exit/start-recording
   event logging, mainly for debugging bugs in the JIT compiler. it requires

@@ -1,7 +1,7 @@
 /*
 ** $Id: lua.h,v 1.218.1.5 2008/08/06 13:30:12 roberto Exp $
 ** Lua - An Extensible Extension Language
-** Lua.org, PUC-Rio, Brazil (http://www.lua.org)
+** Lua.org, PUC-Rio, Brazil (https://www.lua.org)
 ** See Copyright Notice at the end of this file
 */
 
@@ -111,6 +111,9 @@ typedef LUA_INTEGER lua_Integer;
 LUA_API lua_State *(lua_newstate) (lua_Alloc f, void *ud);
 LUA_API void       (lua_close) (lua_State *L);
 LUA_API lua_State *(lua_newthread) (lua_State *L);
+
+#define HAVE_LUA_RESETTHREAD  1
+LUA_API void	   (lua_resetthread) (lua_State *L, lua_State *th);
 
 LUA_API lua_CFunction (lua_atpanic) (lua_State *L, lua_CFunction panicf);
 
@@ -248,6 +251,9 @@ LUA_API void lua_setallocf (lua_State *L, lua_Alloc f, void *ud);
 LUA_API void lua_setexdata(lua_State *L, void *exdata);
 LUA_API void *lua_getexdata(lua_State *L);
 
+#define HAVE_LUA_EXDATA2 1
+LUA_API void lua_setexdata2(lua_State *L, void *exdata2);
+LUA_API void *lua_getexdata2(lua_State *L);
 
 /*
 ** ===============================================================
